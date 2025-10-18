@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder,StandardScaler
+from sklearn.compose import ColumnTransformer
+
 df = pd.read_csv(r'C:\Users\User\ML_Projects\data\Titanic-Dataset.csv')
 print(df.head())
 print(df.columns)
@@ -24,9 +27,27 @@ for col in df.columns:
 
 df.loc[df['Fare'] == 0,'Fare'] = df.groupby('Pclass')['Fare'].transform('median')
 
-# Handling outliers
-
 # Feature engineering 
-df['Age_groups'] = pd.cut(x=df['Age'],bins=4,labels=['Child','Teens','Adults','Seniors'])
 df['Family_size'] = df[['Parch','SibSp']].sum(axis=1) + 1
 df['Alone'] = (df['Family_size'] == 1).astype('int64')
+
+# Encoding Categorical variables 
+df['Sex'] = df['Sex'].map({'male':1,'female':0})
+onehotencoder = OneHotEncoder(drop='first',sparse_output=False)
+Embarked_encoded = onehotencoder.fit_transform(df[['Embarked']])
+encoded_cols = onehotencoder.get_feature_names_out(['Embarked'])
+embarked_df = pd.DataFrame(Embarked_encoded,columns=encoded_cols)
+df = pd.concat([df,embarked_df],axis=1)
+df.drop(columns=['Embarked'],inplace=True,errors='ignore')
+
+# Scaling numerical features (Age,Fare)
+scaler = StandardScaler()
+df[['Age','Fare']] = scaler.fit_transform(df[['Age','Fare']])
+
+# Dropping unnecessary columns
+df = df.drop(columns=['PassengerId','Name','Age_groups','Ticket'],errors='ignore')
+
+# Save the cleaend df
+df.to_csv(r'C:\Users\User\ML_Projects\data\cleaned_df.csv',index=False)
+print('Titanic data cleaned and save successfully')
+
